@@ -1,0 +1,43 @@
+# ShoppingJPA – CRUD Category với JPA 3.0 + Jakarta EE 10 (Servlet 6.0)
+
+Chuyển bài CRUD Category (Servlet + JDBC) sang **JPA (Hibernate 7)**, kiến trúc 3 lớp:
+Controller → Service → DAO → Entity (EntityManager).
+
+## Yêu cầu
+- JDK 17+, Maven
+- Tomcat 10.1+ (dùng `jakarta.*`)
+- SQL Server (TCP/IP port 1433, bật SQL Authentication cho user `sa`)
+
+## Cách chạy
+1. Chạy `sql/create-database.sql` để tạo database `ShoppingJPA`.
+2. Sửa user / password / databaseName trong `src/main/resources/META-INF/persistence.xml`.
+3. (Tuỳ chọn) Chạy `vn.iotstar.config.Test` (main) để Hibernate tạo bảng và thêm dữ liệu thử.
+4. `mvn clean package` → deploy `target/ShoppingJPA.war` lên Tomcat (hoặc Run on Server trong IDE).
+5. Mở `http://localhost:8080/ShoppingJPA/` → bấm **Đăng ký ngay** tạo tài khoản, rồi đăng nhập.
+
+Ảnh upload lưu ở `<thư mục home>/upload/category` (xem `util/Constant.java`).
+
+## Cấu trúc
+```
+sql/create-database.sql
+src/main/resources/META-INF/persistence.xml     persistence unit "jpa-shopping"
+src/main/java/vn/iotstar/
+  entity/     Category.java, Video.java, User.java   (@Entity)
+  config/     JPAConfig.java (EntityManagerFactory dùng chung), JPAContextListener.java, Test.java
+  dao/        ICategoryDao, IUserDao + impl/
+  service/    ICategoryService, IUserService + impl/
+  controller/ Login, Register, Logout, DownloadImage, admin/{Dashboard,CategoryList,CategoryAdd,CategoryEdit,CategoryDelete}
+  filter/     AuthenticationFilter.java (bảo vệ /admin/*)
+src/main/webapp/views/                           JSP + JSTL
+```
+
+## URL
+| URL | Chức năng |
+|---|---|
+| `/register` | Đăng ký tài khoản (lưu bảng `users`, mật khẩu băm PBKDF2) |
+| `/login`, `/logout` | Đăng nhập / đăng xuất |
+| `/admin/dashboard` | Tổng quan |
+| `/admin/category/list[?page=2]` hoặc `?keyword=...` | Danh sách (phân trang) / tìm kiếm |
+| `/admin/category/add` | Thêm (GET form, POST lưu) |
+| `/admin/category/edit?id=1` | Sửa (GET form, POST lưu) |
+| `/admin/category/delete?id=1` | Xóa |
