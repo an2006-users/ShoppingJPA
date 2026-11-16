@@ -19,6 +19,8 @@
         <nav class="side-nav">
             <a class="nav-link active" href="<c:url value='/admin/dashboard'/>"><span class="nav-icon">▦</span><span>Dashboard</span></a>
             <a class="nav-link" href="<c:url value='/admin/category/list'/>"><span class="nav-icon">▤</span><span>Quản lý danh mục</span><span class="nav-count">${categoryCount}</span></a>
+            <a class="nav-link" href="<c:url value='/video'/>"><span class="nav-icon">▶</span><span>Video của tôi</span></a>
+            <a class="nav-link" href="<c:url value='/home'/>"><span class="nav-icon">⌂</span><span>Trang chủ</span></a>
             <div class="nav-link disabled" title="Project hiện chưa có chức năng này"><span class="nav-icon">▣</span><span>Quản lý sản phẩm</span><span class="coming">Sắp có</span></div>
             <div class="nav-link disabled" title="Project hiện chưa có chức năng này"><span class="nav-icon">♙</span><span>Quản lý tài khoản</span><span class="coming">Sắp có</span></div>
         </nav>

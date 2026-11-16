@@ -15,7 +15,11 @@ Controller → Service → DAO → Entity (EntityManager).
 4. `mvn clean package` → deploy `target/ShoppingJPA.war` lên Tomcat (hoặc Run on Server trong IDE).
 5. Mở `http://localhost:8080/ShoppingJPA/` → bấm **Đăng ký ngay** tạo tài khoản, rồi đăng nhập.
 
-Ảnh upload lưu ở `<thư mục home>/upload/category` (xem `util/Constant.java`).
+Ảnh upload lưu ở `<thư mục home>/upload/category`, poster + video lưu ở `<thư mục home>/upload/video` (xem `util/Constant.java`).
+
+### Cấu hình email OTP
+Sửa `src/main/resources/mail.properties` (Gmail: dùng *App password* 16 ký tự, không dùng mật khẩu thường) hoặc đặt biến môi
+trường `MAIL_USERNAME` / `MAIL_PASSWORD`. Nếu chưa cấu hình, mã OTP được **in ra console của Tomcat** (chế độ DEV) để chạy thử.
 
 ## Cấu trúc
 ```
@@ -41,3 +45,13 @@ src/main/webapp/views/                           JSP + JSTL
 | `/admin/category/add` | Thêm (GET form, POST lưu) |
 | `/admin/category/edit?id=1` | Sửa (GET form, POST lưu) |
 | `/admin/category/delete?id=1` | Xóa |
+
+| `/register` → `/verify-otp` | Đăng ký rồi nhập OTP gửi qua email để **kích hoạt** tài khoản (OTP 6 số, hiệu lực 5 phút, sai tối đa 5 lần) |
+| `/forgot-password` → `/reset-password` | Quên mật khẩu: nhập email → nhận OTP → đặt mật khẩu mới |
+| `/home` | Trang chủ: 10 video mới nhất; bấm tiêu đề để xem |
+| `/watch?id=...` | Chi tiết + phát video (HTML5 `<video>`) |
+| `/video[?page=2]` | Video của user đăng nhập, **6 video / trang** |
+| `/video/add`, `/video/edit?id=...`, `POST /video/delete` | CRUD Video (upload poster + file video bằng `@MultipartConfig`) |
+| `/media?fname=...` | Trả file poster / video (hỗ trợ HTTP Range để tua video) |
+
+Quan hệ: `users` 1 — n `videos` (cột `videos.userId`). Mật khẩu băm PBKDF2-HMAC-SHA256 kèm salt ngẫu nhiên.

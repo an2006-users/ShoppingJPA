@@ -30,6 +30,57 @@ public class UserDao implements IUserDao {
     }
 
     @Override
+    public void update(User user) {
+        EntityManager enma = JPAConfig.getEntityManager();
+        EntityTransaction trans = enma.getTransaction();
+        try {
+            trans.begin();
+            enma.merge(user);
+            trans.commit();
+        } catch (Exception e) {
+            e.printStackTrace();
+            if (trans.isActive()) {
+                trans.rollback();
+            }
+            throw e;
+        } finally {
+            enma.close();
+        }
+    }
+
+    @Override
+    public void delete(int userId) {
+        EntityManager enma = JPAConfig.getEntityManager();
+        EntityTransaction trans = enma.getTransaction();
+        try {
+            trans.begin();
+            User user = enma.find(User.class, userId);
+            if (user != null) {
+                enma.remove(user);
+            }
+            trans.commit();
+        } catch (Exception e) {
+            e.printStackTrace();
+            if (trans.isActive()) {
+                trans.rollback();
+            }
+            throw e;
+        } finally {
+            enma.close();
+        }
+    }
+
+    @Override
+    public User findById(int userId) {
+        EntityManager enma = JPAConfig.getEntityManager();
+        try {
+            return enma.find(User.class, userId);
+        } finally {
+            enma.close();
+        }
+    }
+
+    @Override
     public User findByUsername(String username) {
         EntityManager enma = JPAConfig.getEntityManager();
         try {

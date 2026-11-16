@@ -23,11 +23,13 @@ public class LoginController extends HttpServlet {
             throws ServletException, IOException {
         HttpSession session = req.getSession(false);
         if (session != null && session.getAttribute("username") != null) {
-            resp.sendRedirect(req.getContextPath() + "/admin/dashboard");
+            resp.sendRedirect(req.getContextPath() + "/home");
             return;
         }
-        if ("1".equals(req.getParameter("registered"))) {
-            req.setAttribute("success", "Đăng ký thành công! Hãy đăng nhập.");
+        if ("1".equals(req.getParameter("activated"))) {
+            req.setAttribute("success", "Kích hoạt tài khoản thành công! Hãy đăng nhập.");
+        } else if ("1".equals(req.getParameter("reset"))) {
+            req.setAttribute("success", "Đặt lại mật khẩu thành công! Hãy đăng nhập bằng mật khẩu mới.");
         }
         req.getRequestDispatcher("/views/login.jsp").forward(req, resp);
     }
@@ -40,6 +42,20 @@ public class LoginController extends HttpServlet {
         String password = req.getParameter("password");
 
         User user = userService.login(username, password);
+        if (user != null && !user.isActive()) {
+            // Đúng mật khẩu nhưng chưa kích hoạt -> gửi OTP mới và chuyển sang trang xác nhận
+            HttpSession session = req.getSession(true);
+            session.setAttribute(VerifyOtpController.SESSION_EMAIL, user.getEmail());
+            try {
+                userService.sendActivationOtp(user.getEmail());
+                session.setAttribute("otpFlash", "Tài khoản chưa được kích hoạt. Mã OTP đã được gửi đến email của bạn.");
+            } catch (IllegalArgumentException | IllegalStateException e) {
+                // ví dụ: vừa gửi mã cách đây chưa đến 30 giây -> dùng mã hiện có
+                session.setAttribute("otpFlashError", e.getMessage());
+            }
+            resp.sendRedirect(req.getContextPath() + "/verify-otp");
+            return;
+        }
         if (user != null) {
             // Tạo session mới để tránh session fixation
             HttpSession old = req.getSession(false);
@@ -47,9 +63,10 @@ public class LoginController extends HttpServlet {
                 old.invalidate();
             }
             HttpSession session = req.getSession(true);
+            session.setAttribute("userId", user.getUserId());
             session.setAttribute("username", user.getUsername());
             session.setAttribute("fullname", user.getFullname());
-            resp.sendRedirect(req.getContextPath() + "/admin/dashboard");
+            resp.sendRedirect(req.getContextPath() + "/home");
             return;
         }
 

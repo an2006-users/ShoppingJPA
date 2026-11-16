@@ -2,6 +2,8 @@ package vn.iotstar.entity;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -9,6 +11,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.NamedQuery;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 @Entity
@@ -40,6 +43,29 @@ public class User implements Serializable {
     @Column(name = "createdDate")
     private LocalDateTime createdDate = LocalDateTime.now();
 
+    /** false = chưa kích hoạt bằng OTP. DEFAULT 1 để tài khoản cũ trong DB vẫn đăng nhập được. */
+    @Column(name = "active", columnDefinition = "BIT NOT NULL DEFAULT 1")
+    private boolean active;
+
+    /** Mã OTP đang chờ xác nhận (kích hoạt tài khoản hoặc quên mật khẩu). */
+    @Column(name = "otp", columnDefinition = "NVARCHAR(10) NULL")
+    private String otp;
+
+    /** ACTIVATE hoặc RESET. */
+    @Column(name = "otpPurpose", columnDefinition = "NVARCHAR(20) NULL")
+    private String otpPurpose;
+
+    @Column(name = "otpExpiry")
+    private LocalDateTime otpExpiry;
+
+    /** Số lần nhập sai OTP hiện tại. */
+    @Column(name = "otpAttempts", columnDefinition = "INT NOT NULL DEFAULT 0")
+    private int otpAttempts;
+
+    // one-to-many: một User có nhiều Video
+    @OneToMany(mappedBy = "user")
+    private List<Video> videos = new ArrayList<>();
+
     public User() {
     }
 
@@ -55,4 +81,16 @@ public class User implements Serializable {
     public void setEmail(String email) { this.email = email; }
     public LocalDateTime getCreatedDate() { return createdDate; }
     public void setCreatedDate(LocalDateTime createdDate) { this.createdDate = createdDate; }
+    public boolean isActive() { return active; }
+    public void setActive(boolean active) { this.active = active; }
+    public String getOtp() { return otp; }
+    public void setOtp(String otp) { this.otp = otp; }
+    public String getOtpPurpose() { return otpPurpose; }
+    public void setOtpPurpose(String otpPurpose) { this.otpPurpose = otpPurpose; }
+    public LocalDateTime getOtpExpiry() { return otpExpiry; }
+    public void setOtpExpiry(LocalDateTime otpExpiry) { this.otpExpiry = otpExpiry; }
+    public int getOtpAttempts() { return otpAttempts; }
+    public void setOtpAttempts(int otpAttempts) { this.otpAttempts = otpAttempts; }
+    public List<Video> getVideos() { return videos; }
+    public void setVideos(List<Video> videos) { this.videos = videos; }
 }

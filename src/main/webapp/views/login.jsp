@@ -21,6 +21,7 @@
                 <input id="username" name="username" autocomplete="username" required autofocus value="<c:out value='${username}'/>">
                 <label for="password">Mật khẩu</label>
                 <input id="password" type="password" name="password" autocomplete="current-password" required>
+                <a class="forgot" href="<c:url value='/forgot-password'/>">Quên mật khẩu?</a>
                 <button type="submit">Đăng nhập</button>
             </form>
             <small>Chưa có tài khoản? <a href="<c:url value='/register'/>">Đăng ký ngay</a></small>

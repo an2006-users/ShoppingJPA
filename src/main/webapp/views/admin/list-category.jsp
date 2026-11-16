@@ -26,6 +26,14 @@
                 <span class="nav-icon">▤</span>
                 <span>Quản lý danh mục</span>
             </a>
+            <a class="nav-link" href="<c:url value='/video'/>">
+                <span class="nav-icon">▶</span>
+                <span>Video của tôi</span>
+            </a>
+            <a class="nav-link" href="<c:url value='/home'/>">
+                <span class="nav-icon">⌂</span>
+                <span>Trang chủ</span>
+            </a>
         </nav>
         <div class="sidebar-bottom">
             <div class="sidebar-user">

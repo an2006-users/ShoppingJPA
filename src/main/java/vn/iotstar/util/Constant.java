@@ -16,6 +16,12 @@ public class Constant {
                     + File.separator + "upload"
                     + File.separator + "category";
 
+    /** Thu muc luu poster va file video do nguoi dung upload: home/upload/video */
+    public static final String VIDEO_DIR =
+            System.getProperty("user.home")
+                    + File.separator + "upload"
+                    + File.separator + "video";
+
     private Constant() {
     }
 }

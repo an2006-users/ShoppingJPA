@@ -7,6 +7,8 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+import vn.iotstar.entity.User;
 import vn.iotstar.service.IUserService;
 import vn.iotstar.service.impl.UserServiceImpl;
 
@@ -32,11 +34,12 @@ public class RegisterController extends HttpServlet {
         String password = req.getParameter("password");
         String confirm = req.getParameter("confirm");
 
+        User user;
         try {
             if (password == null || !password.equals(confirm)) {
                 throw new IllegalArgumentException("Mật khẩu nhập lại không khớp");
             }
-            userService.register(username, password, fullname, email);
+            user = userService.register(username, password, fullname, email);
         } catch (IllegalArgumentException e) {
             req.setAttribute("error", e.getMessage());
             // Giữ lại dữ liệu đã nhập (trừ mật khẩu)
@@ -46,6 +49,17 @@ public class RegisterController extends HttpServlet {
             req.getRequestDispatcher("/views/register.jsp").forward(req, resp);
             return;
         }
-        resp.sendRedirect(req.getContextPath() + "/login?registered=1");
+
+        // Tài khoản đã tạo (chưa kích hoạt) -> gửi OTP rồi chuyển sang trang nhập mã
+        HttpSession session = req.getSession(true);
+        session.setAttribute(VerifyOtpController.SESSION_EMAIL, user.getEmail());
+        try {
+            userService.sendActivationOtp(user.getEmail());
+            session.setAttribute("otpFlash", "Chúng tôi đã gửi mã OTP đến email của bạn.");
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            // Gửi mail lỗi: vẫn cho sang trang xác nhận để bấm "Gửi lại mã"
+            session.setAttribute("otpFlashError", e.getMessage());
+        }
+        resp.sendRedirect(req.getContextPath() + "/verify-otp");
     }
 }
