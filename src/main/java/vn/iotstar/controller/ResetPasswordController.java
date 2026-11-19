@@ -1,6 +1,7 @@
 package vn.iotstar.controller;
 
 import java.io.IOException;
+import java.util.Map;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -8,8 +9,10 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import vn.iotstar.model.ResetPasswordForm;
 import vn.iotstar.service.IUserService;
 import vn.iotstar.service.impl.UserServiceImpl;
+import vn.iotstar.util.ValidationUtil;
 
 /** Bước 2 quên mật khẩu: nhập OTP + mật khẩu mới. */
 @WebServlet("/reset-password")
@@ -35,7 +38,9 @@ public class ResetPasswordController extends HttpServlet {
             session.removeAttribute("resetFlash");
         }
         req.setAttribute("maskedEmail", VerifyOtpController.mask(email));
-        req.getRequestDispatcher("/views/reset-password.jsp").forward(req, resp);
+        // Tomcat 11 + SiteMesh: dùng include() thay forward(); trang include không tự đặt content type
+        resp.setContentType("text/html;charset=UTF-8");
+        req.getRequestDispatcher("/views/reset-password.jsp").include(req, resp);
     }
 
     @Override
@@ -57,21 +62,26 @@ public class ResetPasswordController extends HttpServlet {
                 req.setAttribute("error", e.getMessage());
             }
         } else {
-            String password = req.getParameter("password");
-            String confirm = req.getParameter("confirm");
-            try {
-                if (password == null || !password.equals(confirm)) {
-                    throw new IllegalArgumentException("Mật khẩu nhập lại không khớp");
+            ResetPasswordForm form = new ResetPasswordForm(req.getParameter("otp"),
+                    req.getParameter("password"), req.getParameter("confirm"));
+            Map<String, String> errors = ValidationUtil.validate(form);
+            if (!errors.isEmpty()) {
+                req.setAttribute("errors", errors);
+                req.setAttribute("otp", form.getOtp());
+            } else {
+                try {
+                    userService.resetPassword(email, form.getOtp(), form.getPassword());
+                    session.removeAttribute(SESSION_EMAIL);
+                    resp.sendRedirect(req.getContextPath() + "/login?reset=1");
+                    return;
+                } catch (IllegalArgumentException e) {
+                    req.setAttribute("error", e.getMessage());
                 }
-                userService.resetPassword(email, req.getParameter("otp"), password);
-                session.removeAttribute(SESSION_EMAIL);
-                resp.sendRedirect(req.getContextPath() + "/login?reset=1");
-                return;
-            } catch (IllegalArgumentException e) {
-                req.setAttribute("error", e.getMessage());
             }
         }
         req.setAttribute("maskedEmail", VerifyOtpController.mask(email));
-        req.getRequestDispatcher("/views/reset-password.jsp").forward(req, resp);
+        // Tomcat 11 + SiteMesh: dùng include() thay forward(); trang include không tự đặt content type
+        resp.setContentType("text/html;charset=UTF-8");
+        req.getRequestDispatcher("/views/reset-password.jsp").include(req, resp);
     }
 }

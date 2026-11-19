@@ -40,4 +40,48 @@ public interface IUserService {
 
     /** @throws IllegalArgumentException OTP sai / hết hạn hoặc mật khẩu mới không hợp lệ */
     void resetPassword(String email, String otp, String newPassword);
+
+    // ------------------------------------------------------------------ hồ sơ (Bài 3)
+
+    /** Trả về null nếu không có. */
+    User findById(int userId);
+
+    /**
+     * Kiểm tra email mới có dùng được không (chưa thuộc tài khoản đã kích hoạt khác).
+     *
+     * @throws vn.iotstar.util.FieldValidationException field "email"
+     */
+    void checkEmailAvailable(int userId, String newEmail);
+
+    /**
+     * Cập nhật họ tên, số điện thoại và (nếu có) ảnh đại diện mới.
+     *
+     * @param imageUrl      null = giữ ảnh cũ
+     * @return public_id của ảnh cũ đã bị thay thế (để xoá trên Cloudinary), hoặc null
+     */
+    String updateProfile(int userId, String fullname, String phone, String imageUrl, String imagePublicId);
+
+    /**
+     * Đổi email: lưu email mới vào pendingEmail và gửi OTP đến EMAIL MỚI.
+     * Email chỉ thực sự đổi khi gọi {@link #confirmEmailChange(int, String)} với OTP đúng.
+     *
+     * @throws vn.iotstar.util.FieldValidationException email trùng / giống email hiện tại
+     * @throws IllegalArgumentException gửi lại quá nhanh
+     * @throws IllegalStateException    gửi email thất bại
+     */
+    void requestEmailChange(int userId, String newEmail);
+
+    /** Gửi lại OTP đến email đang chờ xác nhận. */
+    void resendEmailChangeOtp(int userId);
+
+    /**
+     * Xác nhận OTP: chuyển pendingEmail thành email chính thức.
+     *
+     * @return email mới
+     * @throws IllegalArgumentException OTP sai / hết hạn / email đã bị người khác dùng
+     */
+    String confirmEmailChange(int userId, String otp);
+
+    /** Huỷ yêu cầu đổi email đang chờ. */
+    void cancelEmailChange(int userId);
 }

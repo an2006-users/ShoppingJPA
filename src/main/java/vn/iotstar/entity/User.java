@@ -40,6 +40,22 @@ public class User implements Serializable {
     @Column(name = "email", columnDefinition = "NVARCHAR(100)", nullable = false, unique = true)
     private String email;
 
+    /** Số điện thoại (không bắt buộc). */
+    @Column(name = "phone", columnDefinition = "NVARCHAR(15) NULL")
+    private String phone;
+
+    /** URL ảnh đại diện trên Cloudinary (secure_url). */
+    @Column(name = "images", columnDefinition = "NVARCHAR(500) NULL")
+    private String images;
+
+    /** public_id của ảnh trên Cloudinary, dùng để xoá ảnh cũ khi đổi ảnh. */
+    @Column(name = "imagePublicId", columnDefinition = "NVARCHAR(255) NULL")
+    private String imagePublicId;
+
+    /** Email mới đang chờ xác nhận bằng OTP (chỉ ghi vào cột email khi OTP đúng). */
+    @Column(name = "pendingEmail", columnDefinition = "NVARCHAR(100) NULL")
+    private String pendingEmail;
+
     @Column(name = "createdDate")
     private LocalDateTime createdDate = LocalDateTime.now();
 
@@ -51,7 +67,7 @@ public class User implements Serializable {
     @Column(name = "otp", columnDefinition = "NVARCHAR(10) NULL")
     private String otp;
 
-    /** ACTIVATE hoặc RESET. */
+    /** ACTIVATE, RESET hoặc EMAIL (đổi email trong trang hồ sơ). */
     @Column(name = "otpPurpose", columnDefinition = "NVARCHAR(20) NULL")
     private String otpPurpose;
 
@@ -79,6 +95,14 @@ public class User implements Serializable {
     public void setFullname(String fullname) { this.fullname = fullname; }
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+    public String getImages() { return images; }
+    public void setImages(String images) { this.images = images; }
+    public String getImagePublicId() { return imagePublicId; }
+    public void setImagePublicId(String imagePublicId) { this.imagePublicId = imagePublicId; }
+    public String getPendingEmail() { return pendingEmail; }
+    public void setPendingEmail(String pendingEmail) { this.pendingEmail = pendingEmail; }
     public LocalDateTime getCreatedDate() { return createdDate; }
     public void setCreatedDate(LocalDateTime createdDate) { this.createdDate = createdDate; }
     public boolean isActive() { return active; }

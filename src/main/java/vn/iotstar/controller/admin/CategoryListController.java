@@ -49,6 +49,8 @@ public class CategoryListController extends HttpServlet {
 
         req.setAttribute("cateList", cateList);
         req.setAttribute("keyword", keyword);
-        req.getRequestDispatcher("/views/admin/list-category.jsp").forward(req, resp);
+        // Tomcat 11 + SiteMesh: dùng include() thay forward(); trang include không tự đặt content type
+        resp.setContentType("text/html;charset=UTF-8");
+        req.getRequestDispatcher("/views/admin/list-category.jsp").include(req, resp);
     }
 }

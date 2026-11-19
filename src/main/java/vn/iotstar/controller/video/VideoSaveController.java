@@ -1,7 +1,8 @@
 package vn.iotstar.controller.video;
 
 import java.io.IOException;
-import java.util.Set;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
@@ -11,10 +12,13 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.Part;
 import vn.iotstar.entity.Video;
+import vn.iotstar.model.VideoForm;
 import vn.iotstar.service.IVideoService;
 import vn.iotstar.service.impl.VideoServiceImpl;
 import vn.iotstar.util.Constant;
 import vn.iotstar.util.FileUploadUtil;
+import vn.iotstar.util.FileValidator;
+import vn.iotstar.util.ValidationUtil;
 
 /**
  * Thêm / sửa video bằng form multipart (upload poster + file video).
@@ -28,8 +32,8 @@ import vn.iotstar.util.FileUploadUtil;
 public class VideoSaveController extends HttpServlet {
     private static final long serialVersionUID = 1L;
 
-    private static final Set<String> IMAGE_EXT = Set.of("jpg", "jpeg", "png", "gif", "webp");
-    private static final Set<String> VIDEO_EXT = Set.of("mp4", "webm", "ogg", "mov");
+    private static final long MAX_POSTER = 5 * FileValidator.MB;
+    private static final long MAX_VIDEO = 200 * FileValidator.MB;
     private static final String FORM = "/views/web/video-form.jsp";
 
     private final IVideoService videoService = new VideoServiceImpl();
@@ -51,7 +55,9 @@ public class VideoSaveController extends HttpServlet {
             req.setAttribute("video", video);
         }
         req.setAttribute("editMode", isEdit(req));
-        req.getRequestDispatcher(FORM).forward(req, resp);
+        // Tomcat 11 + SiteMesh: dùng include() thay forward(); trang include không tự đặt content type
+        resp.setContentType("text/html;charset=UTF-8");
+        req.getRequestDispatcher(FORM).include(req, resp);
     }
 
     @Override
@@ -77,19 +83,46 @@ public class VideoSaveController extends HttpServlet {
         String oldVideoFile = video.getVideoFile();
         String newPoster = null;
         String newVideoFile = null;
+        Map<String, String> errors = new LinkedHashMap<>();
+
+        // Gọi getPart trước: nếu file vượt giới hạn @MultipartConfig sẽ ném lỗi tại đây
+        Part posterPart = null;
+        Part videoPart = null;
+        try {
+            posterPart = req.getPart("poster");
+            videoPart = req.getPart("videoFile");
+        } catch (IllegalStateException | ServletException e) {
+            errors.put("videoFile", "Upload thất bại: file quá lớn (video tối đa 200MB, poster tối đa 5MB)");
+        }
+
+        // 1) Validation dữ liệu chữ bằng Bean Validation
+        VideoForm form = new VideoForm(req.getParameter("title"), req.getParameter("description"));
+        errors.putAll(ValidationUtil.validate(form));
+        video.setTitle(form.getTitle());
+        video.setDescription(form.getDescription());
+        video.setActive(req.getParameter("active") != null);
+
+        // 2) Validation file: định dạng, kiểu MIME, dung lượng; thêm mới bắt buộc có video
+        String posterErr = FileValidator.check(posterPart, FileValidator.IMAGE_EXT, "image/", MAX_POSTER, "Ảnh poster");
+        if (posterErr != null) {
+            errors.putIfAbsent("poster", posterErr);
+        }
+        String videoErr = FileValidator.check(videoPart, FileValidator.VIDEO_EXT, null, MAX_VIDEO, "File video");
+        if (videoErr != null) {
+            errors.putIfAbsent("videoFile", videoErr);
+        }
+        if (!edit && !errors.containsKey("videoFile") && !FileValidator.hasFile(videoPart)) {
+            errors.put("videoFile", "Vui lòng chọn file video để upload");
+        }
+
+        if (!errors.isEmpty()) {
+            forwardForm(req, resp, video, edit, errors, null);
+            return;
+        }
 
         try {
-            // Gọi getPart trước: nếu file vượt giới hạn @MultipartConfig sẽ ném lỗi tại đây
-            Part posterPart = req.getPart("poster");
-            Part videoPart = req.getPart("videoFile");
-
-            video.setTitle(req.getParameter("title"));
-            String desc = req.getParameter("description");
-            video.setDescription(desc == null || desc.isBlank() ? null : desc.trim());
-            video.setActive(req.getParameter("active") != null);
-
-            newPoster = FileUploadUtil.saveFile(posterPart, Constant.VIDEO_DIR, IMAGE_EXT);
-            newVideoFile = FileUploadUtil.saveFile(videoPart, Constant.VIDEO_DIR, VIDEO_EXT);
+            newPoster = FileUploadUtil.saveFile(posterPart, Constant.VIDEO_DIR, FileValidator.IMAGE_EXT);
+            newVideoFile = FileUploadUtil.saveFile(videoPart, Constant.VIDEO_DIR, FileValidator.VIDEO_EXT);
             if (newPoster != null) {
                 video.setPoster(newPoster);
             }
@@ -102,19 +135,15 @@ public class VideoSaveController extends HttpServlet {
             } else {
                 videoService.insert(video, userId);
             }
-        } catch (IllegalArgumentException | IllegalStateException | ServletException e) {
+        } catch (IllegalArgumentException | IllegalStateException e) {
             // Lưu thất bại: xoá file vừa upload để khỏi rác
             FileUploadUtil.deleteQuietly(Constant.VIDEO_DIR, newPoster);
             FileUploadUtil.deleteQuietly(Constant.VIDEO_DIR, newVideoFile);
             video.setPoster(oldPoster);
             video.setVideoFile(oldVideoFile);
-
             String message = e instanceof IllegalArgumentException ? e.getMessage()
-                    : "Upload thất bại. File quá lớn (tối đa 200MB) hoặc dữ liệu không hợp lệ.";
-            req.setAttribute("error", message);
-            req.setAttribute("video", video);
-            req.setAttribute("editMode", edit);
-            req.getRequestDispatcher(FORM).forward(req, resp);
+                    : "Không lưu được video. Vui lòng thử lại.";
+            forwardForm(req, resp, video, edit, errors, message);
             return;
         }
 
@@ -126,5 +155,16 @@ public class VideoSaveController extends HttpServlet {
             FileUploadUtil.deleteQuietly(Constant.VIDEO_DIR, oldVideoFile);
         }
         resp.sendRedirect(req.getContextPath() + "/video?msg=" + (edit ? "updated" : "added"));
+    }
+
+    private void forwardForm(HttpServletRequest req, HttpServletResponse resp, Video video, boolean edit,
+            Map<String, String> errors, String error) throws ServletException, IOException {
+        req.setAttribute("errors", errors);
+        req.setAttribute("error", error);
+        req.setAttribute("video", video);
+        req.setAttribute("editMode", edit);
+        // Tomcat 11 + SiteMesh: dùng include() thay forward(); trang include không tự đặt content type
+        resp.setContentType("text/html;charset=UTF-8");
+        req.getRequestDispatcher(FORM).include(req, resp);
     }
 }

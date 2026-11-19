@@ -53,6 +53,11 @@ IF COL_LENGTH('users', 'otp')         IS NULL ALTER TABLE users ADD otp NVARCHAR
 IF COL_LENGTH('users', 'otpPurpose')  IS NULL ALTER TABLE users ADD otpPurpose NVARCHAR(20) NULL;
 IF COL_LENGTH('users', 'otpExpiry')   IS NULL ALTER TABLE users ADD otpExpiry DATETIME2 NULL;
 IF COL_LENGTH('users', 'otpAttempts') IS NULL ALTER TABLE users ADD otpAttempts INT NOT NULL DEFAULT 0;
+-- Bài 3: hồ sơ người dùng (số điện thoại, ảnh Cloudinary, email mới chờ xác nhận OTP)
+IF COL_LENGTH('users', 'phone')         IS NULL ALTER TABLE users ADD phone NVARCHAR(15) NULL;
+IF COL_LENGTH('users', 'images')        IS NULL ALTER TABLE users ADD images NVARCHAR(500) NULL;
+IF COL_LENGTH('users', 'imagePublicId') IS NULL ALTER TABLE users ADD imagePublicId NVARCHAR(255) NULL;
+IF COL_LENGTH('users', 'pendingEmail')  IS NULL ALTER TABLE users ADD pendingEmail NVARCHAR(100) NULL;
 IF COL_LENGTH('videos', 'videoFile')   IS NULL ALTER TABLE videos ADD videoFile NVARCHAR(255) NULL;
 IF COL_LENGTH('videos', 'createdDate') IS NULL ALTER TABLE videos ADD createdDate DATETIME2 NULL;
 IF COL_LENGTH('videos', 'userId')      IS NULL ALTER TABLE videos ADD userId INT NULL;

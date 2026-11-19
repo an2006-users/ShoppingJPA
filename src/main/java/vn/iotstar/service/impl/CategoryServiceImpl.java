@@ -8,6 +8,7 @@ import vn.iotstar.dao.impl.CategoryDao;
 import vn.iotstar.entity.Category;
 import vn.iotstar.service.ICategoryService;
 import vn.iotstar.util.Constant;
+import vn.iotstar.util.FieldValidationException;
 
 public class CategoryServiceImpl implements ICategoryService {
 
@@ -16,7 +17,7 @@ public class CategoryServiceImpl implements ICategoryService {
     @Override
     public void insert(Category category) {
         if (cateDao.findByCategoryname(category.getCategoryname()) != null) {
-            throw new IllegalArgumentException("Tên danh mục đã tồn tại");
+            throw new FieldValidationException("catename", "Tên danh mục đã tồn tại");
         }
         cateDao.insert(category);
     }
@@ -29,7 +30,7 @@ public class CategoryServiceImpl implements ICategoryService {
         }
         Category sameName = cateDao.findByCategoryname(newCategory.getCategoryname());
         if (sameName != null && sameName.getCategoryId() != old.getCategoryId()) {
-            throw new IllegalArgumentException("Tên danh mục đã tồn tại");
+            throw new FieldValidationException("catename", "Tên danh mục đã tồn tại");
         }
 
         old.setCategoryname(newCategory.getCategoryname());

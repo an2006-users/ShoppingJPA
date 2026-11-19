@@ -11,6 +11,7 @@ import vn.iotstar.dao.impl.UserDao;
 import vn.iotstar.entity.User;
 import vn.iotstar.service.IUserService;
 import vn.iotstar.util.EmailUtil;
+import vn.iotstar.util.FieldValidationException;
 import vn.iotstar.util.OtpUtil;
 import vn.iotstar.util.PasswordUtil;
 
@@ -21,6 +22,7 @@ public class UserServiceImpl implements IUserService {
 
     private static final String PURPOSE_ACTIVATE = "ACTIVATE";
     private static final String PURPOSE_RESET = "RESET";
+    private static final String PURPOSE_EMAIL = "EMAIL";
 
     /** OTP có hiệu lực 5 phút, được nhập sai tối đa 5 lần, gửi lại cách nhau tối thiểu 30 giây. */
     private static final int OTP_MINUTES = 5;
@@ -55,14 +57,14 @@ public class UserServiceImpl implements IUserService {
         User byName = userDao.findByUsername(username);
         if (byName != null) {
             if (byName.isActive()) {
-                throw new IllegalArgumentException("Tên đăng nhập đã tồn tại");
+                throw new FieldValidationException("username", "Tên đăng nhập đã tồn tại");
             }
             userDao.delete(byName.getUserId());
         }
         User byMail = userDao.findByEmail(email);
         if (byMail != null) {
             if (byMail.isActive()) {
-                throw new IllegalArgumentException("Email đã được sử dụng");
+                throw new FieldValidationException("email", "Email đã được sử dụng");
             }
             userDao.delete(byMail.getUserId());
         }
@@ -97,7 +99,7 @@ public class UserServiceImpl implements IUserService {
         if (user == null || user.isActive()) {
             throw new IllegalArgumentException("Tài khoản không tồn tại hoặc đã được kích hoạt");
         }
-        issueOtp(user, PURPOSE_ACTIVATE, "kích hoạt tài khoản");
+        issueOtp(user, PURPOSE_ACTIVATE, "kích hoạt tài khoản", user.getEmail());
     }
 
     @Override
@@ -124,7 +126,7 @@ public class UserServiceImpl implements IUserService {
         if (user == null || !user.isActive()) {
             return; // không tiết lộ email có tồn tại hay không
         }
-        issueOtp(user, PURPOSE_RESET, "đặt lại mật khẩu");
+        issueOtp(user, PURPOSE_RESET, "đặt lại mật khẩu", user.getEmail());
     }
 
     @Override
@@ -142,9 +144,118 @@ public class UserServiceImpl implements IUserService {
         userDao.update(user);
     }
 
+    // ------------------------------------------------------------------ hồ sơ (Bài 3)
+
+    @Override
+    public User findById(int userId) {
+        return userDao.findById(userId);
+    }
+
+    @Override
+    public void checkEmailAvailable(int userId, String newEmail) {
+        String mail = normalizeEmail(newEmail);
+        if (!EMAIL.matcher(mail).matches() || mail.length() > 100) {
+            throw new FieldValidationException("email", "Email không hợp lệ");
+        }
+        User other = userDao.findByEmail(mail);
+        // Tài khoản chưa kích hoạt không "giữ chỗ" email (giống lúc đăng ký)
+        if (other != null && other.getUserId() != userId && other.isActive()) {
+            throw new FieldValidationException("email", "Email này đã được tài khoản khác sử dụng");
+        }
+    }
+
+    @Override
+    public String updateProfile(int userId, String fullname, String phone, String imageUrl, String imagePublicId) {
+        User user = requireUser(userId);
+        String name = fullname == null ? "" : fullname.trim();
+        if (name.isEmpty() || name.length() > 100) {
+            throw new FieldValidationException("fullname", "Họ tên không được để trống (tối đa 100 ký tự)");
+        }
+        user.setFullname(name);
+        user.setPhone(phone == null || phone.isBlank() ? null : phone.trim());
+
+        String oldPublicId = null;
+        if (imageUrl != null && !imageUrl.isBlank()) {
+            oldPublicId = user.getImagePublicId();
+            user.setImages(imageUrl);
+            user.setImagePublicId(imagePublicId);
+        }
+        userDao.update(user);
+        return oldPublicId;
+    }
+
+    @Override
+    public void requestEmailChange(int userId, String newEmail) {
+        User user = requireUser(userId);
+        String mail = normalizeEmail(newEmail);
+        if (mail.equals(user.getEmail())) {
+            throw new FieldValidationException("email", "Email mới trùng với email hiện tại");
+        }
+        checkEmailAvailable(userId, mail);
+        if (!mail.equals(user.getPendingEmail())) {
+            // Đổi sang email khác -> mã cũ (gửi tới email trước đó) không còn giá trị, cho gửi ngay
+            clearOtp(user);
+        }
+        user.setPendingEmail(mail);
+        userDao.update(user);
+        issueOtp(user, PURPOSE_EMAIL, "xác nhận email mới", mail);
+    }
+
+    @Override
+    public void resendEmailChangeOtp(int userId) {
+        User user = requireUser(userId);
+        if (user.getPendingEmail() == null) {
+            throw new IllegalArgumentException("Không có yêu cầu đổi email nào đang chờ xác nhận");
+        }
+        issueOtp(user, PURPOSE_EMAIL, "xác nhận email mới", user.getPendingEmail());
+    }
+
+    @Override
+    public String confirmEmailChange(int userId, String otp) {
+        User user = requireUser(userId);
+        String mail = user.getPendingEmail();
+        if (mail == null) {
+            throw new IllegalArgumentException("Không có yêu cầu đổi email nào đang chờ xác nhận");
+        }
+        checkOtp(user, PURPOSE_EMAIL, otp);
+
+        // Kiểm tra lại lần nữa: trong lúc chờ OTP có thể người khác đã đăng ký email này
+        User other = userDao.findByEmail(mail);
+        if (other != null && other.getUserId() != userId) {
+            if (other.isActive()) {
+                throw new IllegalArgumentException("Email này vừa được tài khoản khác sử dụng");
+            }
+            userDao.delete(other.getUserId()); // tài khoản chưa kích hoạt -> giải phóng email
+        }
+        user.setEmail(mail);
+        user.setPendingEmail(null);
+        clearOtp(user);
+        userDao.update(user);
+        return mail;
+    }
+
+    @Override
+    public void cancelEmailChange(int userId) {
+        User user = requireUser(userId);
+        user.setPendingEmail(null);
+        if (PURPOSE_EMAIL.equals(user.getOtpPurpose())) {
+            clearOtp(user);
+        }
+        userDao.update(user);
+    }
+
+    private User requireUser(int userId) {
+        User user = userDao.findById(userId);
+        if (user == null) {
+            throw new IllegalArgumentException("Tài khoản không tồn tại");
+        }
+        return user;
+    }
+
     // ------------------------------------------------------------------ OTP dùng chung
 
-    private void issueOtp(User user, String purpose, String actionText) {
+    /** Sinh OTP, lưu vào user rồi gửi đến địa chỉ {@code to}. */
+    private void issueOtp(User user, String purpose, String actionText, String to) {
         LocalDateTime now = LocalDateTime.now();
         if (user.getOtpExpiry() != null && user.getOtp() != null) {
             LocalDateTime issuedAt = user.getOtpExpiry().minusMinutes(OTP_MINUTES);
@@ -159,7 +270,7 @@ public class UserServiceImpl implements IUserService {
         user.setOtpExpiry(now.plusMinutes(OTP_MINUTES));
         user.setOtpAttempts(0);
         userDao.update(user);
-        EmailUtil.sendOtp(user.getEmail(), user.getFullname(), otp, actionText, OTP_MINUTES);
+        EmailUtil.sendOtp(to, user.getFullname(), otp, actionText, OTP_MINUTES);
     }
 
     private void checkOtp(User user, String purpose, String input) {

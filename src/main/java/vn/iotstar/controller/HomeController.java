@@ -23,6 +23,8 @@ public class HomeController extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
         req.setAttribute("videos", videoService.findLatestActive(LATEST));
-        req.getRequestDispatcher("/views/web/home.jsp").forward(req, resp);
+        // Tomcat 11 + SiteMesh: dùng include() thay forward(); trang include không tự đặt content type
+        resp.setContentType("text/html;charset=UTF-8");
+        req.getRequestDispatcher("/views/web/home.jsp").include(req, resp);
     }
 }

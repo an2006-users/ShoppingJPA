@@ -1,6 +1,7 @@
 package vn.iotstar.controller;
 
 import java.io.IOException;
+import java.util.Map;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -9,8 +10,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import vn.iotstar.entity.User;
+import vn.iotstar.model.RegisterForm;
 import vn.iotstar.service.IUserService;
 import vn.iotstar.service.impl.UserServiceImpl;
+import vn.iotstar.util.FieldValidationException;
+import vn.iotstar.util.ValidationUtil;
 
 @WebServlet("/register")
 public class RegisterController extends HttpServlet {
@@ -21,32 +25,35 @@ public class RegisterController extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        req.getRequestDispatcher("/views/register.jsp").forward(req, resp);
+        // Tomcat 11 + SiteMesh: dùng include() thay forward(); trang include không tự đặt content type
+        resp.setContentType("text/html;charset=UTF-8");
+        req.getRequestDispatcher("/views/register.jsp").include(req, resp);
     }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
         req.setCharacterEncoding("UTF-8");
-        String username = req.getParameter("username");
-        String fullname = req.getParameter("fullname");
-        String email = req.getParameter("email");
-        String password = req.getParameter("password");
-        String confirm = req.getParameter("confirm");
+        RegisterForm form = new RegisterForm(req.getParameter("fullname"), req.getParameter("email"),
+                req.getParameter("username"), req.getParameter("password"), req.getParameter("confirm"));
 
-        User user;
-        try {
-            if (password == null || !password.equals(confirm)) {
-                throw new IllegalArgumentException("Mật khẩu nhập lại không khớp");
+        Map<String, String> errors = ValidationUtil.validate(form);
+        User user = null;
+        if (errors.isEmpty()) {
+            try {
+                user = userService.register(form.getUsername(), form.getPassword(), form.getFullname(), form.getEmail());
+            } catch (FieldValidationException e) {
+                errors.put(e.getField(), e.getMessage()); // vd: username / email đã tồn tại
+            } catch (IllegalArgumentException e) {
+                req.setAttribute("error", e.getMessage());
             }
-            user = userService.register(username, password, fullname, email);
-        } catch (IllegalArgumentException e) {
-            req.setAttribute("error", e.getMessage());
-            // Giữ lại dữ liệu đã nhập (trừ mật khẩu)
-            req.setAttribute("username", username);
-            req.setAttribute("fullname", fullname);
-            req.setAttribute("email", email);
-            req.getRequestDispatcher("/views/register.jsp").forward(req, resp);
+        }
+        if (user == null) {
+            req.setAttribute("errors", errors);
+            req.setAttribute("form", form); // giữ lại dữ liệu đã nhập (JSP không hiện lại mật khẩu)
+            // Tomcat 11 + SiteMesh: dùng include() thay forward(); trang include không tự đặt content type
+            resp.setContentType("text/html;charset=UTF-8");
+            req.getRequestDispatcher("/views/register.jsp").include(req, resp);
             return;
         }
 

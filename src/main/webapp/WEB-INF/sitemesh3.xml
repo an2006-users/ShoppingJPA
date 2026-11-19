@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Cấu hình SiteMesh 3. Mapping dài hơn (cụ thể hơn) được ưu tiên.
+    - /admin/*  -> decorators/admin.jsp (Bootstrap: navbar + sidebar quản trị)
+    - còn lại   -> decorators/web.jsp   (Bootstrap: navbar + footer cho người dùng)
+    Các URL trả file (ảnh, video, css, js) không phải text/html nên SiteMesh tự bỏ qua,
+    nhưng vẫn khai báo exclude cho rõ ràng và đỡ tốn xử lý.
+-->
+<sitemesh>
+    <!-- Mặc định SiteMesh 3.2 tự thêm tiền tố /WEB-INF/decorators/ vào tên decorator.
+         Decorator của project nằm ở /decorators/ nên khai báo lại tiền tố. -->
+    <decorator-prefix>/decorators/</decorator-prefix>
+
+    <!-- Tomcat 11: forward() sang decorator cho ra trang trắng -> dùng include() -->
+    <dispatch-mode>include</dispatch-mode>
+
+    <mapping path="/*" decorator="web.jsp"/>
+    <mapping path="/admin/*" decorator="admin.jsp"/>
+
+    <mapping path="/assets/*" exclude="true"/>
+    <mapping path="/media" exclude="true"/>
+    <mapping path="/image" exclude="true"/>
+    <mapping path="/decorators/*" exclude="true"/>
+</sitemesh>

@@ -2,10 +2,26 @@
 <web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee
-                             https://jakarta.ee/xml/ns/jakartaee/web-app_6_0.xsd"
-         version="6.0">
+                             https://jakarta.ee/xml/ns/jakartaee/web-app_6_1.xsd"
+         version="6.1">
 
     <display-name>Shopping Servlet JPA</display-name>
+
+    <!--
+        SiteMesh 3: bắt mọi response text/html rồi "trang trí" bằng decorator (layout Bootstrap).
+        Quy tắc chọn decorator nằm trong /WEB-INF/sitemesh3.xml.
+        Trên Tomcat 11, controller dùng include() (không dùng forward()) sang JSP để nội dung đi vào buffer của SiteMesh.
+    -->
+    <filter>
+        <filter-name>sitemesh</filter-name>
+        <filter-class>org.sitemesh.config.ConfigurableSiteMeshFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>sitemesh</filter-name>
+        <url-pattern>/*</url-pattern>
+        <dispatcher>REQUEST</dispatcher>
+        <dispatcher>ERROR</dispatcher>
+    </filter-mapping>
 
     <welcome-file-list>
         <welcome-file>index.jsp</welcome-file>

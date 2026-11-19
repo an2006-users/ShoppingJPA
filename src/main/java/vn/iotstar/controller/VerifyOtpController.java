@@ -1,6 +1,7 @@
 package vn.iotstar.controller;
 
 import java.io.IOException;
+import java.util.Map;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -8,8 +9,10 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import vn.iotstar.model.OtpForm;
 import vn.iotstar.service.IUserService;
 import vn.iotstar.service.impl.UserServiceImpl;
+import vn.iotstar.util.ValidationUtil;
 
 /** Trang nhập OTP để kích hoạt tài khoản sau khi đăng ký (hoặc sau khi đăng nhập tài khoản chưa kích hoạt). */
 @WebServlet("/verify-otp")
@@ -34,7 +37,9 @@ public class VerifyOtpController extends HttpServlet {
         moveFlash(session, "otpFlash", req, "info");
         moveFlash(session, "otpFlashError", req, "error");
         req.setAttribute("maskedEmail", mask(email));
-        req.getRequestDispatcher("/views/verify-otp.jsp").forward(req, resp);
+        // Tomcat 11 + SiteMesh: dùng include() thay forward(); trang include không tự đặt content type
+        resp.setContentType("text/html;charset=UTF-8");
+        req.getRequestDispatcher("/views/verify-otp.jsp").include(req, resp);
     }
 
     @Override
@@ -56,17 +61,25 @@ public class VerifyOtpController extends HttpServlet {
                 req.setAttribute("error", e.getMessage());
             }
         } else {
-            try {
-                userService.activate(email, req.getParameter("otp"));
-                session.removeAttribute(SESSION_EMAIL);
-                resp.sendRedirect(req.getContextPath() + "/login?activated=1");
-                return;
-            } catch (IllegalArgumentException e) {
-                req.setAttribute("error", e.getMessage());
+            OtpForm form = new OtpForm(req.getParameter("otp"));
+            Map<String, String> errors = ValidationUtil.validate(form);
+            if (!errors.isEmpty()) {
+                req.setAttribute("errors", errors);
+            } else {
+                try {
+                    userService.activate(email, form.getOtp());
+                    session.removeAttribute(SESSION_EMAIL);
+                    resp.sendRedirect(req.getContextPath() + "/login?activated=1");
+                    return;
+                } catch (IllegalArgumentException e) {
+                    req.setAttribute("error", e.getMessage());
+                }
             }
         }
         req.setAttribute("maskedEmail", mask(email));
-        req.getRequestDispatcher("/views/verify-otp.jsp").forward(req, resp);
+        // Tomcat 11 + SiteMesh: dùng include() thay forward(); trang include không tự đặt content type
+        resp.setContentType("text/html;charset=UTF-8");
+        req.getRequestDispatcher("/views/verify-otp.jsp").include(req, resp);
     }
 
     private static void moveFlash(HttpSession session, String key, HttpServletRequest req, String attr) {

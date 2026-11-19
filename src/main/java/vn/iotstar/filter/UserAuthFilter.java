@@ -12,8 +12,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
-/** Bảo vệ khu vực quản lý video của người dùng: /video và /video/* (phải đăng nhập). */
-@WebFilter(urlPatterns = { "/video", "/video/*" })
+/** Bảo vệ khu vực của người dùng (phải đăng nhập): /video, /video/*, /profile, /profile/*. */
+@WebFilter(urlPatterns = { "/video", "/video/*", "/profile", "/profile/*" })
 public class UserAuthFilter implements Filter {
 
     @Override

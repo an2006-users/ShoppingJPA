@@ -1,119 +1,67 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="jakarta.tags.core"%>
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Chỉnh sửa danh mục</title>
-    <link rel="stylesheet" href="<c:url value='/assets/css/dashboard.css'/>">
-</head>
+<html>
+<head><title>Sửa danh mục</title></head>
 <body>
-<div class="admin-layout">
-    <aside class="sidebar" id="sidebar">
-        <a class="brand" href="<c:url value='/admin/dashboard'/>">
-            <span class="brand-mark">S</span>
-            <span>SHOPPING<span class="brand-sub">ADMIN PANEL</span></span>
-        </a>
-        <div class="sidebar-label">MENU CHÍNH</div>
-        <nav class="side-nav">
-            <a class="nav-link" href="<c:url value='/admin/dashboard'/>">
-                <span class="nav-icon">▦</span>
-                <span>Dashboard</span>
-            </a>
-            <a class="nav-link active" href="<c:url value='/admin/category/list'/>">
-                <span class="nav-icon">▤</span>
-                <span>Quản lý danh mục</span>
-            </a>
-            <a class="nav-link" href="<c:url value='/video'/>">
-                <span class="nav-icon">▶</span>
-                <span>Video của tôi</span>
-            </a>
-            <a class="nav-link" href="<c:url value='/home'/>">
-                <span class="nav-icon">⌂</span>
-                <span>Trang chủ</span>
-            </a>
-        </nav>
-        <div class="sidebar-bottom">
-            <div class="sidebar-user">
-                <div class="avatar">${sessionScope.fullname.substring(0,1).toUpperCase()}</div>
-                <div>
-                    <strong><c:out value="${sessionScope.fullname}"/></strong>
-                    <small>@${sessionScope.username}</small>
-                </div>
-                <span class="user-dot"></span>
-            </div>
-        </div>
-    </aside>
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a href="<c:url value='/admin/category/list'/>">Danh mục</a></li>
+        <li class="breadcrumb-item active">Chỉnh sửa</li>
+    </ol>
+</nav>
 
-    <main class="main-content">
-        <header class="topbar">
-            <button class="menu-toggle" id="menuToggle" aria-label="Mở menu">☰</button>
-            <div class="breadcrumb">Danh mục <span>/</span> <strong>Chỉnh sửa</strong></div>
-            <div class="top-actions">
-                <span class="today-label" id="todayLabel"></span>
-                <div class="top-avatar">${sessionScope.fullname.substring(0,1).toUpperCase()}</div>
-            </div>
-        </header>
+<div class="card border-0 shadow-sm" style="max-width: 720px">
+    <div class="card-body p-4">
+        <h1 class="h4 mb-1">Chỉnh sửa danh mục</h1>
+        <p class="text-secondary">Mã danh mục: #<c:out value="${category.categoryId}"/></p>
 
-        <section class="page-content form-shell">
-            <div class="page-heading">
-                <div>
-                    <div class="eyebrow"><span class="live-dot"></span> CẬP NHẬT DANH MỤC</div>
-                    <h1>Chỉnh sửa danh mục</h1>
-                    <p class="page-description">Cập nhật tên hoặc thay ảnh đại diện cho danh mục của bạn.</p>
-                </div>
+        <c:if test="${not empty error}"><div class="alert alert-danger"><c:out value="${error}"/></div></c:if>
+
+        <form class="needs-validation" novalidate action="<c:url value='/admin/category/edit'/>" method="post" enctype="multipart/form-data">
+            <input type="hidden" name="id" value="${category.categoryId}">
+
+            <div class="mb-3">
+                <label class="form-label" for="catename">Tên danh mục *</label>
+                <input id="catename" type="text" class="form-control${not empty errors.catename ? ' is-invalid' : ''}" name="catename" required minlength="2" maxlength="100"
+                       value="<c:out value='${category.categoryname}'/>">
+                <div class="invalid-feedback"><c:out value="${not empty errors.catename ? errors.catename : 'Tên danh mục từ 2 đến 100 ký tự'}"/></div>
             </div>
 
-            <section class="panel form-card">
-                <h2>Thông tin danh mục</h2>
-                <p>Mã danh mục: #<c:out value="${category.categoryId}"/></p>
-
-                <c:if test="${not empty error}">
-                    <div class="alert-error"><c:out value="${error}"/></div>
+            <div class="mb-3">
+                <label class="form-label" for="icon">Ảnh đại diện</label>
+                <c:if test="${not empty category.images}">
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        <img class="preview-img" src="<c:url value='/image?fname=${category.images}'/>" alt="Ảnh hiện tại">
+                        <span class="form-text">Ảnh hiện tại. Chọn ảnh mới nếu muốn thay đổi.</span>
+                    </div>
                 </c:if>
+                <input id="icon" class="form-control${not empty errors.icon ? ' is-invalid' : ''}" type="file" name="icon" accept=".jpg,.jpeg,.png,.gif,.webp"
+                       data-ext="jpg,jpeg,png,gif,webp" data-max-mb="2" data-preview="#iconPreview">
+                <div class="form-text">Để trống nếu muốn giữ ảnh cũ. JPG, PNG, GIF hoặc WEBP, tối đa 2MB.</div>
+                <div class="invalid-feedback"><c:out value="${not empty errors.icon ? errors.icon : 'Ảnh không hợp lệ'}"/></div>
+                <img id="iconPreview" class="preview-img mt-2 d-none" alt="Xem trước">
+            </div>
 
-                <c:url value="/admin/category/edit" var="editUrl"/>
-                <form action="${editUrl}" method="post" enctype="multipart/form-data">
-                    <input type="hidden" name="id" value="${category.categoryId}">
+            <div class="mb-4">
+                <label class="form-label d-block">Trạng thái</label>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="status" id="status1" value="1" ${category.status == 1 ? 'checked' : ''}>
+                    <label class="form-check-label" for="status1">Hoạt động</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="status" id="status0" value="0" ${category.status != 1 ? 'checked' : ''}>
+                    <label class="form-check-label" for="status0">Khóa</label>
+                </div>
+                <c:if test="${not empty errors.status}"><div class="text-danger small"><c:out value="${errors.status}"/></div></c:if>
+            </div>
 
-                    <div class="form-group">
-                        <label class="form-label" for="catename">Tên danh mục *</label>
-                        <input id="catename" type="text" class="field-input" name="catename" required value="<c:out value='${category.categoryname}'/>">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label" for="icon">Ảnh đại diện</label>
-                        <c:if test="${not empty category.images}">
-                            <c:url value="/image?fname=${category.images}" var="imgUrl"/>
-                            <div class="current-image">
-                                <img src="${imgUrl}" alt="Ảnh hiện tại">
-                                <span>Ảnh hiện tại. Chọn ảnh mới bên dưới nếu muốn thay đổi.</span>
-                            </div>
-                        </c:if>
-                        <input id="icon" class="file-input" type="file" name="icon" accept="image/*">
-                        <span class="file-hint">Để trống nếu muốn giữ ảnh cũ.</span>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Trạng thái</label>
-                        <label><input type="radio" name="status" value="1" ${category.status == 1 ? 'checked' : ''}> Hoạt động</label>
-                        &nbsp;&nbsp;
-                        <label><input type="radio" name="status" value="0" ${category.status != 1 ? 'checked' : ''}> Khóa</label>
-                    </div>
-
-                    <div class="form-actions">
-                        <button type="submit" class="button button-primary">Lưu thay đổi</button>
-                        <button type="reset" class="button button-secondary">Khôi phục</button>
-                        <a href="<c:url value='/admin/category/list'/>" class="back-link">← Quay lại danh sách</a>
-                    </div>
-                </form>
-            </section>
-        </section>
-    </main>
+            <div class="d-flex flex-wrap gap-2">
+                <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                <button type="reset" class="btn btn-outline-secondary">Khôi phục</button>
+                <a href="<c:url value='/admin/category/list'/>" class="btn btn-link">← Quay lại danh sách</a>
+            </div>
+        </form>
+    </div>
 </div>
-
-<div class="mobile-overlay" id="mobileOverlay"></div>
-<script src="<c:url value='/assets/js/dashboard.js'/>"></script>
 </body>
 </html>

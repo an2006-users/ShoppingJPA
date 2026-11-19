@@ -16,17 +16,17 @@
     </properties>
 
     <dependencies>
-        <!-- Jakarta EE 10 / Servlet 6.0 (Tomcat 10.1+ đã có sẵn) -->
+        <!-- Jakarta EE 11 / Servlet 6.1 (Tomcat 11 đã có sẵn) -->
         <dependency>
             <groupId>jakarta.servlet</groupId>
             <artifactId>jakarta.servlet-api</artifactId>
-            <version>6.0.0</version>
+            <version>6.1.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>jakarta.servlet.jsp</groupId>
             <artifactId>jakarta.servlet.jsp-api</artifactId>
-            <version>3.1.1</version>
+            <version>4.0.0</version>
             <scope>provided</scope>
         </dependency>
 
@@ -40,6 +40,13 @@
             <groupId>org.glassfish.web</groupId>
             <artifactId>jakarta.servlet.jsp.jstl</artifactId>
             <version>3.0.1</version>
+        </dependency>
+
+        <!-- SiteMesh 3.3 (Jakarta, có dispatch-mode include để chạy đúng trên Tomcat 11) -->
+        <dependency>
+            <groupId>org.sitemesh</groupId>
+            <artifactId>sitemesh</artifactId>
+            <version>3.3.0</version>
         </dependency>
 
         <!-- JPA: Hibernate ORM (kéo theo jakarta.persistence-api) -->
@@ -77,6 +84,13 @@
             <groupId>org.eclipse.angus</groupId>
             <artifactId>angus-mail</artifactId>
             <version>2.0.3</version>
+        </dependency>
+
+        <!-- Cloudinary: upload ảnh đại diện lên cloud (Bài 3) -->
+        <dependency>
+            <groupId>com.cloudinary</groupId>
+            <artifactId>cloudinary-http5</artifactId>
+            <version>2.4.0</version>
         </dependency>
 
         <!-- SQL Server JDBC driver -->

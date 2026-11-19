@@ -37,7 +37,9 @@ public class WatchController extends HttpServlet {
         if (video == null || (!video.isActive() && !owner)) {
             req.setAttribute("error", "Video không tồn tại hoặc đã bị ẩn.");
             resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
-            req.getRequestDispatcher("/views/web/watch.jsp").forward(req, resp);
+            // Tomcat 11 + SiteMesh: dùng include() thay forward(); trang include không tự đặt content type
+            resp.setContentType("text/html;charset=UTF-8");
+            req.getRequestDispatcher("/views/web/watch.jsp").include(req, resp);
             return;
         }
 
@@ -55,6 +57,8 @@ public class WatchController extends HttpServlet {
 
         req.setAttribute("video", video);
         req.setAttribute("owner", owner);
-        req.getRequestDispatcher("/views/web/watch.jsp").forward(req, resp);
+        // Tomcat 11 + SiteMesh: dùng include() thay forward(); trang include không tự đặt content type
+        resp.setContentType("text/html;charset=UTF-8");
+        req.getRequestDispatcher("/views/web/watch.jsp").include(req, resp);
     }
 }

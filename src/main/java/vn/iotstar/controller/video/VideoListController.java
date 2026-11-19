@@ -50,6 +50,8 @@ public class VideoListController extends HttpServlet {
         } else if ("notfound".equals(msg)) {
             req.setAttribute("error", "Không tìm thấy video hoặc bạn không có quyền thao tác.");
         }
-        req.getRequestDispatcher("/views/web/video-list.jsp").forward(req, resp);
+        // Tomcat 11 + SiteMesh: dùng include() thay forward(); trang include không tự đặt content type
+        resp.setContentType("text/html;charset=UTF-8");
+        req.getRequestDispatcher("/views/web/video-list.jsp").include(req, resp);
     }
 }

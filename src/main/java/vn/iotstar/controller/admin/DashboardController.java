@@ -37,6 +37,8 @@ public class DashboardController extends HttpServlet {
         req.setAttribute("categoryCount", categories.size());
         req.setAttribute("imageCount", imageCount);
         req.setAttribute("recentCategories", recentCategories);
-        req.getRequestDispatcher("/views/admin/dashboard.jsp").forward(req, resp);
+        // Tomcat 11 + SiteMesh: dùng include() thay forward(); trang include không tự đặt content type
+        resp.setContentType("text/html;charset=UTF-8");
+        req.getRequestDispatcher("/views/admin/dashboard.jsp").include(req, resp);
     }
 }
